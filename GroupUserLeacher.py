@@ -1,4 +1,5 @@
 #------- Import Library's
+from operator import le
 from subprocess import call
 from typing import Counter
 from telethon.sync import TelegramClient, functions, types, events, errors
@@ -76,8 +77,11 @@ async def join(event, link):
         print (":::::::::::::::::::" , e.__class__ , str(e))
         return -1
 
+
 #-------- Start Receiving Message's
+leach = False
 async def answer(event):
+    global leach
     text = event.raw_text
     user_id = event.sender_id
 
@@ -133,13 +137,15 @@ async def answer(event):
             onlines = 0
             recents = 0
             counter = 0
+            updateTime = time.time()
 
             #--- Get All users
             offset = 0
             limit = 100
             all_participants = []
+            leach = True
 
-            while True:
+            while leach:
                 participants = await Leacher(functions.channels.GetParticipantsRequest(
                     link, types.ChannelParticipantsSearch(''), offset, limit,
                     hash=0
@@ -162,6 +168,18 @@ async def answer(event):
                             file_Recently.write(str(item.username) + '\n')
                             counter+=1
                             recents += 1
+                        
+                        #--- Alert
+                        if time.time() - updateTime >= 6:
+                            bt = [
+                                [Button.inline(f"Online", 'none'), Button.inline(f"LastSeenRecently", 'none')],
+                                [Button.inline(f"{onlines}", 'none'), Button.inline(f"{recents}", 'none')],
+                                [Button.inline(f"❌ STOP ❌", 'stop-leach')]
+                            ]
+                            await m.edit('📊 Leaching Status:', buttons=bt)
+                            
+                        if not leach:
+                            break
                 
             #--- Close file
             file_Onlines.close()
@@ -182,6 +200,7 @@ async def answer(event):
 
 #------- Answer Callback data
 async def callback(events):
+    global leach
     callback = events.data.decode()
     user_id = events.sender_id
     sender = await events.get_sender()
@@ -204,6 +223,11 @@ async def callback(events):
     #--- Close btns
     elif callback == "Close":
         await events.delete()
+    
+    #--- stop
+    elif callback == "stop-leach":
+        await events.answer('🔄 در حال پردازش لطفا منتظر باشید ...')
+        leach = False
 
 #------- Handler
 @bot.on(events.NewMessage)
