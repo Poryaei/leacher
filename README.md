@@ -8,5 +8,3 @@ python3 GroupUserLeacher.py
 
 
 
-
-My telegram id: [@Poryaei](https://t.me/poryaei)
